@@ -64,9 +64,9 @@ io.on('connection', (socket) => {
     } 
 });
 
-// O Render vai nos dar uma porta (process.env.PORT), se não, usa 3000
+// Configuração essencial para o Render
 const PORT = process.env.PORT || 3000;
 
 http.listen(PORT, () => {
-    console.log(`[SISTEMA] Servidor rodando na porta ${PORT}`);
+    console.log(`[SISTEMA NA NUVEM] Rodando na porta ${PORT}`);
 });
