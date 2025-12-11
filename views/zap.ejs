@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>MÓDULO ZAP</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <a href="/" class="btn-back">< VOLTAR AO MENU</a>
+
+    <div class="module-container">
+        <div class="sidebar">
+            <div class="box">
+                <h2 class="red-glow">INJEÇÃO DE PACOTES</h2>
+                <br>
+                <p>PROTOCOLO: <span style="color:white">W.A. DECRYPTION</span></p>
+                <p>CHAVE PÚBLICA: <span style="font-size: 0.7rem;">fd9832-da21-xx99</span></p>
+                <p>STATUS: <span class="red-glow">INTERCEPTANDO...</span></p>
+            </div>
+            
+            <div class="box" style="flex:1; overflow: hidden;">
+                <h3>CONTATOS ATIVOS</h3>
+                <div style="margin-top: 15px; font-size: 0.9rem;">
+                    <p>> (11) 99823-xxxx [ONLINE]</p>
+                    <p>> (11) 97102-xxxx [OFFLINE]</p>
+                    <p>> (21) 96555-xxxx [ONLINE]</p>
+                    <p style="color: #666;">> Escaneando lista de contatos...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-display box" style="display: flex; flex-direction: column;">
+            <div style="border-bottom: 1px solid var(--neon-red); padding-bottom: 10px; margin-bottom: 10px;">
+                <h2 class="red-glow">> TERMINAL DE MENSAGENS</h2>
+            </div>
+            
+            <div id="zap-feed" style="flex: 1; overflow-y: auto; font-family: monospace;">
+                </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const feed = document.getElementById('zap-feed');
+
+        socket.on('zap_update', (data) => {
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            
+            // Simula um visual de log técnico
+            div.innerHTML = `
+                <span class="log-time">[${data.time}]</span>
+                <p><strong>FROM:</strong> ${data.sender} (${data.number})</p>
+                <p style="color: #ddd; margin-top: 5px;">> ${data.content}</p>
+                <p style="font-size: 0.7rem; color: #444;">TYPE: ${data.type} | KEY_ID: OK</p>
+            `;
+            
+            feed.insertBefore(div, feed.firstChild);
+            
+            // Efeito sonoro sutil (opcional) ou flash na borda pode ser adicionado depois
+        });
+    </script>
+</body>
+</html>

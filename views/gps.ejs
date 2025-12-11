@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <title>MÓDULO GPS</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+    <a href="/" class="btn-back">
+        < VOLTAR AO MENU</a>
+
+            <div class="module-container">
+                <div class="sidebar">
+                    <div class="box">
+                        <h2 class="red-glow">STATUS DO ALVO</h2>
+                        <br>
+                        <p>ID: <span id="dev-id">BUSCANDO...</span></p>
+                        <p>BATERIA: <span id="bat-level">--%</span></p>
+                        <p>STATUS: <span class="red-glow blink">ATIVO</span></p>
+                    </div>
+                    <div class="box" style="flex:1;">
+                        <h3>LOGS DE COORDENADAS</h3>
+                        <ul id="gps-logs" style="list-style: none; margin-top: 10px; font-size: 0.8rem; opacity: 0.8;">
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="main-display">
+                    <div id="map"></div>
+                </div>
+            </div>
+
+            <script src="/socket.io/socket.io.js"></script>
+            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+            <script>
+                const socket = io({
+                query: { role: 'admin' }
+                });
+                
+                const map = L.map('map').setView([-23.5505, -46.6333], 13);
+
+                // Mapa base (preto e branco via CSS filter)
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: 'Sistema de Rastreamento'
+                }).addTo(map);
+
+                // Ícone personalizado vermelho
+                const redIcon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: "<div style='background-color:#ff003c; width: 15px; height: 15px; border-radius: 50%; box-shadow: 0 0 10px #ff003c;'></div>",
+                    iconSize: [15, 15],
+                    iconAnchor: [7, 7]
+                });
+
+                const marker = L.marker([-23.5505, -46.6333], { icon: redIcon }).addTo(map);
+
+                socket.on('gps_update', (data) => {
+                    document.getElementById('dev-id').innerText = data.deviceId;
+                    document.getElementById('bat-level').innerText = data.battery + '%';
+
+                    const newLatLng = [data.lat, data.lng];
+                    marker.setLatLng(newLatLng);
+                    map.panTo(newLatLng);
+
+                    const logs = document.getElementById('gps-logs');
+                    const li = document.createElement('li');
+                    li.innerHTML = `> LAT: ${data.lat.toFixed(5)} | LNG: ${data.lng.toFixed(5)}`;
+                    logs.insertBefore(li, logs.firstChild);
+                    if (logs.children.length > 15) logs.removeChild(logs.lastChild);
+                });
+            </script>
+</body>
+
+</html>

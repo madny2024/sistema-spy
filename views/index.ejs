@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GHOST PROTOCOL // MONITOR</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+    <div class="overlay"></div> <div class="container">
+        <header>
+            <h1>> SYSTEM_MONITOR: <span id="device-id">SEARCHING...</span></h1>
+            <div class="status-bar">
+                <span>STATUS: <b id="connection-status" class="blink">SCANNING</b></span>
+                <span>BATTERY: <b id="battery-level">--%</b></span>
+            </div>
+        </header>
+
+        <main>
+            <section class="data-panel">
+                <div class="box">
+                    <h3>> GEOLOCATION_DATA</h3>
+                    <p>LAT: <span id="lat">0.000000</span></p>
+                    <p>LNG: <span id="lng">0.000000</span></p>
+                    <p>LAST_PING: <span id="last-ping">--:--:--</span></p>
+                </div>
+
+                <div class="box terminal">
+                    <h3>> SYSTEM_LOGS</h3>
+                    <ul id="log-list">
+                        <li>> Inicializando protocolo de rastreamento...</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="map-panel">
+                <div id="map"></div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/js/dashboard.js"></script>
+</body>
+</html>
