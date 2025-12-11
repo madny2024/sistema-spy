@@ -1,77 +1,121 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
     <meta charset="UTF-8">
     <title>MÓDULO GPS</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        /* Estilo do Painel de Conexão */
+        .connect-overlay {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #ff003c;
+            padding: 20px;
+            z-index: 9999;
+            width: 300px;
+            color: white;
+            font-family: monospace;
+        }
+        .input-hacker {
+            background: #000;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 10px;
+            width: 100%;
+            font-size: 1.2rem;
+            text-align: center;
+            margin-bottom: 10px;
+            font-family: monospace;
+            text-transform: uppercase;
+        }
+        .btn-hacker {
+            background: #ff003c;
+            color: black;
+            border: none;
+            width: 100%;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-hacker:hover { background: white; }
+    </style>
 </head>
-
 <body>
-    <a href="/" class="btn-back">
-        < VOLTAR AO MENU</a>
+    <a href="/" class="btn-back">< VOLTAR</a>
 
-            <div class="module-container">
-                <div class="sidebar">
-                    <div class="box">
-                        <h2 class="red-glow">STATUS DO ALVO</h2>
-                        <br>
-                        <p>ID: <span id="dev-id">BUSCANDO...</span></p>
-                        <p>BATERIA: <span id="bat-level">--%</span></p>
-                        <p>STATUS: <span class="red-glow blink">ATIVO</span></p>
-                    </div>
-                    <div class="box" style="flex:1;">
-                        <h3>LOGS DE COORDENADAS</h3>
-                        <ul id="gps-logs" style="list-style: none; margin-top: 10px; font-size: 0.8rem; opacity: 0.8;">
-                        </ul>
-                    </div>
-                </div>
+    <div class="connect-overlay" id="login-panel">
+        <h3 style="color: #ff003c; text-align: center;">CONEXÃO SEGURA</h3>
+        <p style="font-size: 0.8rem; text-align: center; margin-bottom: 15px;">DIGITE O CÓDIGO DO ALVO:</p>
+        
+        <input type="text" id="target-id" class="input-hacker" placeholder="EX: 8F2A" maxlength="4">
+        <button onclick="startTracking()" class="btn-hacker">RASTREAR AGORA</button>
+        <p id="msg" style="text-align: center; margin-top: 10px; font-size: 0.8rem;"></p>
+    </div>
 
-                <div class="main-display">
-                    <div id="map"></div>
-                </div>
+    <div class="module-container">
+        <div class="sidebar">
+            <div class="box">
+                <h2 class="red-glow">DADOS DO ALVO</h2>
+                <br>
+                <p>ID CONECTADO: <span id="dev-id" style="color:#00ff41">AGUARDANDO...</span></p>
+                <p>BATERIA: <span id="bat-level">--%</span></p>
+                <p>STATUS: <span class="red-glow blink" id="status-txt">DESCONECTADO</span></p>
             </div>
+        </div>
 
-            <script src="/socket.io/socket.io.js"></script>
-            <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-            <script>
-                const socket = io({
-                query: { role: 'admin' }
-                });
-                
-                const map = L.map('map').setView([-23.5505, -46.6333], 13);
+        <div class="main-display">
+            <div id="map"></div>
+        </div>
+    </div>
 
-                // Mapa base (preto e branco via CSS filter)
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: 'Sistema de Rastreamento'
-                }).addTo(map);
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const socket = io();
+        const map = L.map('map').setView([-15.793889, -47.882778], 4); // Começa no Brasil
+        let targetId = null;
 
-                // Ícone personalizado vermelho
-                const redIcon = L.divIcon({
-                    className: 'custom-div-icon',
-                    html: "<div style='background-color:#ff003c; width: 15px; height: 15px; border-radius: 50%; box-shadow: 0 0 10px #ff003c;'></div>",
-                    iconSize: [15, 15],
-                    iconAnchor: [7, 7]
-                });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: 'Sistema de Rastreamento'
+        }).addTo(map);
 
-                const marker = L.marker([-23.5505, -46.6333], { icon: redIcon }).addTo(map);
+        const redIcon = L.divIcon({
+            className: 'custom-div-icon',
+            html: "<div style='background-color:#ff003c; width: 15px; height: 15px; border-radius: 50%; box-shadow: 0 0 10px #ff003c;'></div>",
+            iconSize: [15, 15],
+            iconAnchor: [7, 7]
+        });
+        const marker = L.marker([0, 0], {icon: redIcon}).addTo(map);
 
-                socket.on('gps_update', (data) => {
-                    document.getElementById('dev-id').innerText = data.deviceId;
-                    document.getElementById('bat-level').innerText = data.battery + '%';
+        // Função chamada ao clicar no botão RASTREAR
+        function startTracking() {
+            const input = document.getElementById('target-id').value.toUpperCase();
+            if(input.length < 1) return;
+            
+            targetId = input;
+            document.getElementById('msg').innerText = "BUSCANDO SINAL DO ALVO: " + targetId + "...";
+            document.getElementById('msg').style.color = "yellow";
+        }
 
-                    const newLatLng = [data.lat, data.lng];
-                    marker.setLatLng(newLatLng);
-                    map.panTo(newLatLng);
+        socket.on('gps_update', (data) => {
+            // AQUI É A MÁGICA: Só atualiza se o ID for igual ao digitado
+            // Ou se o campo estiver vazio, mostramos qualquer um (modo debug)
+            if (targetId && data.id !== targetId) return;
 
-                    const logs = document.getElementById('gps-logs');
-                    const li = document.createElement('li');
-                    li.innerHTML = `> LAT: ${data.lat.toFixed(5)} | LNG: ${data.lng.toFixed(5)}`;
-                    logs.insertBefore(li, logs.firstChild);
-                    if (logs.children.length > 15) logs.removeChild(logs.lastChild);
-                });
-            </script>
+            document.getElementById('login-panel').style.display = 'none'; // Esconde o login ao achar
+            
+            document.getElementById('dev-id').innerText = data.id || "DESCONHECIDO";
+            document.getElementById('bat-level').innerText = data.battery + '%';
+            document.getElementById('status-txt').innerText = "RASTREADO EM TEMPO REAL";
+            document.getElementById('status-txt').style.color = "#00ff41";
+            
+            const newLatLng = [data.lat, data.lng];
+            marker.setLatLng(newLatLng);
+            map.setView(newLatLng, 16); // Zoom automático
+        });
+    </script>
 </body>
-
 </html>
