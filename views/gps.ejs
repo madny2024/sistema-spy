@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>MÓDULO GPS</title>
+    <title>MÓDULO TÁTICO</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="/css/style.css">
     <style>
@@ -11,59 +11,87 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.95);
             border: 1px solid #ff003c;
+            box-shadow: 0 0 20px rgba(255, 0, 60, 0.2);
             padding: 20px;
             z-index: 9999;
-            width: 300px;
+            width: 320px;
             color: white;
             font-family: monospace;
         }
         .input-hacker {
-            background: #000;
-            border: 1px solid #00ff41;
+            background: #111;
+            border: 1px solid #333;
             color: #00ff41;
-            padding: 10px;
+            padding: 12px;
             width: 100%;
-            font-size: 1.2rem;
+            font-size: 1.5rem;
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             font-family: monospace;
             text-transform: uppercase;
+            letter-spacing: 3px;
         }
+        .input-hacker:focus { outline: none; border-color: #00ff41; }
+        
         .btn-hacker {
             background: #ff003c;
             color: black;
             border: none;
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: 0.3s;
         }
-        .btn-hacker:hover { background: white; }
+        .btn-hacker:hover { background: white; box-shadow: 0 0 15px white; }
+
+        /* Dados da rota no canto */
+        .route-info {
+            margin-top: 15px;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+            font-size: 0.8rem;
+            color: #aaa;
+        }
     </style>
 </head>
 <body>
     <a href="/" class="btn-back">< VOLTAR</a>
 
     <div class="connect-overlay" id="login-panel">
-        <h3 style="color: #ff003c; text-align: center;">CONEXÃO SEGURA</h3>
-        <p style="font-size: 0.8rem; text-align: center; margin-bottom: 15px;">DIGITE O CÓDIGO DO ALVO:</p>
+        <h3 style="color: #ff003c; text-align: center; margin-top: 0;">ACESSO RESTRITO</h3>
+        <p style="font-size: 0.8rem; text-align: center; margin-bottom: 20px; color: #888;">
+            INSIRA O CÓDIGO DO AGENTE PARA INICIAR O RASTREAMENTO
+        </p>
         
-        <input type="text" id="target-id" class="input-hacker" placeholder="EX: 8F2A" maxlength="4">
-        <button onclick="startTracking()" class="btn-hacker">RASTREAR AGORA</button>
-        <p id="msg" style="text-align: center; margin-top: 10px; font-size: 0.8rem;"></p>
+        <input type="text" id="target-id" class="input-hacker" placeholder="ID" maxlength="4">
+        <button onclick="startTracking()" class="btn-hacker">LOCALIZAR ALVO</button>
+        <p id="msg" style="text-align: center; margin-top: 15px; font-size: 0.9rem; font-weight: bold;"></p>
     </div>
 
     <div class="module-container">
         <div class="sidebar">
             <div class="box">
-                <h2 class="red-glow">DADOS DO ALVO</h2>
+                <h2 class="red-glow">STATUS DA MISSÃO</h2>
                 <br>
-                <p>ID CONECTADO: <span id="dev-id" style="color:#00ff41">AGUARDANDO...</span></p>
-                <p>BATERIA: <span id="bat-level">--%</span></p>
-                <p>STATUS: <span class="red-glow blink" id="status-txt">DESCONECTADO</span></p>
+                <p>ALVO: <span id="dev-id" style="color:#fff; font-weight:bold;">---</span></p>
+                <p>BATERIA: <span id="bat-level" style="color:#aaa;">--%</span></p>
+                <p>VELOCIDADE: <span id="speed-level" style="color:#00ff41;">0 km/h</span></p>
+                <p>STATUS: <span class="red-glow blink" id="status-txt">AGUARDANDO...</span></p>
+                
+                <div class="route-info">
+                    <p>PONTOS NO RASTRO: <span id="points-count">0</span></p>
+                </div>
             </div>
+            
+            <button onclick="clearRoute()" style="margin-top: 10px; background: transparent; border: 1px solid #555; color: #aaa; width: 100%; padding: 5px; cursor: pointer;">
+                LIMPAR ROTA
+            </button>
         </div>
 
         <div class="main-display">
@@ -75,46 +103,80 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const socket = io();
-        const map = L.map('map').setView([-15.793889, -47.882778], 4); // Começa no Brasil
-        let targetId = null;
+        
+        // Configuração do Mapa (Estilo Escuro se possível, mas usando padrão por enquanto)
+        const map = L.map('map').setView([-15.793889, -47.882778], 4); 
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: 'Sistema de Rastreamento'
+            attribution: 'Sistema de Rastreamento Tático'
         }).addTo(map);
 
+        // Ícone do Alvo (Ponto Vermelho Pulsante)
         const redIcon = L.divIcon({
             className: 'custom-div-icon',
-            html: "<div style='background-color:#ff003c; width: 15px; height: 15px; border-radius: 50%; box-shadow: 0 0 10px #ff003c;'></div>",
-            iconSize: [15, 15],
-            iconAnchor: [7, 7]
+            html: "<div style='background-color:#ff003c; width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 0 15px #ff003c; border: 2px solid white;'></div>",
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
         });
         const marker = L.marker([0, 0], {icon: redIcon}).addTo(map);
 
-        // Função chamada ao clicar no botão RASTREAR
+        // --- SISTEMA DE RASTRO (LINHA) ---
+        let pathHistory = []; // Array para guardar o histórico
+        let polyline = L.polyline([], {
+            color: '#ff003c', // Cor da linha (Vermelho Neon)
+            weight: 4,        // Grossura
+            opacity: 0.7,     // Transparência
+            lineJoin: 'round' // Curvas suaves
+        }).addTo(map);
+
+        let targetId = null;
+
         function startTracking() {
             const input = document.getElementById('target-id').value.toUpperCase();
             if(input.length < 1) return;
             
             targetId = input;
-            document.getElementById('msg').innerText = "BUSCANDO SINAL DO ALVO: " + targetId + "...";
+            document.getElementById('msg').innerText = "BUSCANDO FREQUÊNCIA: " + targetId + "...";
             document.getElementById('msg').style.color = "yellow";
+        }
+        
+        // Botão para limpar a linha se ficar muito bagunçada
+        function clearRoute() {
+            pathHistory = [];
+            polyline.setLatLngs([]);
+            document.getElementById('points-count').innerText = "0";
         }
 
         socket.on('gps_update', (data) => {
-            // AQUI É A MÁGICA: Só atualiza se o ID for igual ao digitado
-            // Ou se o campo estiver vazio, mostramos qualquer um (modo debug)
+            // Filtro de ID
             if (targetId && data.id !== targetId) return;
 
-            document.getElementById('login-panel').style.display = 'none'; // Esconde o login ao achar
-            
-            document.getElementById('dev-id').innerText = data.id || "DESCONHECIDO";
+            // Esconde login e atualiza textos
+            document.getElementById('login-panel').style.display = 'none';
+            document.getElementById('dev-id').innerText = data.id;
             document.getElementById('bat-level').innerText = data.battery + '%';
-            document.getElementById('status-txt').innerText = "RASTREADO EM TEMPO REAL";
+            
+            // Tratamento de velocidade (vem m/s, converte para km/h)
+            let speedKmh = data.speed ? (data.speed * 3.6).toFixed(1) : 0;
+            if(speedKmh < 0) speedKmh = 0;
+            document.getElementById('speed-level').innerText = speedKmh + ' km/h';
+
+            document.getElementById('status-txt').innerText = "RASTREADO (ONLINE)";
             document.getElementById('status-txt').style.color = "#00ff41";
             
             const newLatLng = [data.lat, data.lng];
+
+            // --- DESENHAR O RASTRO ---
+            // Adiciona o ponto novo na lista
+            pathHistory.push(newLatLng);
+            // Atualiza a linha no mapa
+            polyline.setLatLngs(pathHistory);
+            // Atualiza contador
+            document.getElementById('points-count').innerText = pathHistory.length;
+
+            // Move o pino e a câmera
             marker.setLatLng(newLatLng);
-            map.setView(newLatLng, 16); // Zoom automático
+            map.setView(newLatLng, 18); // Zoom bem perto para ver o movimento
         });
     </script>
 </body>
