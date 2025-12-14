@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serviço de Localização</title>
+</head>
+<body>
+    <button id="btn-acao" style="padding: 20px; font-size: 18px;">Verificar Disponibilidade</button>
+    
+    <p id="status"></p>
+
+    <script>
+        document.getElementById('btn-acao').addEventListener('click', () => {
+            const status = document.getElementById('status');
+
+            if (!navigator.geolocation) {
+                status.textContent = 'Geolocalização não é suportada pelo seu navegador';
+            } else {
+                status.textContent = 'Localizando...';
+                
+                // Solicita a permissão
+                navigator.geolocation.getCurrentPosition(sucesso, erro, {
+                    enableHighAccuracy: true, // Tenta usar GPS preciso
+                    timeout: 10000,           // Espera até 10s
+                    maximumAge: 0             // Não aceita cache antigo
+                });
+            }
+
+            function sucesso(position) {
+                const latitude  = position.coords.latitude;
+                const longitude = position.coords.longitude;
+                
+                // AQUI é onde os dados seriam enviados para o seu servidor (Node.js/PHP)
+                // Exemplo: fetch('/salvar-local', { body: ... })
+                
+                status.textContent = `Localizado! Lat: ${latitude}, Long: ${longitude}`;
+                console.log(`Link Google Maps: https://www.google.com/maps?q=${latitude},${longitude}`);
+            }
+
+            function erro() {
+                status.textContent = 'Não foi possível obter sua localização. (O usuário negou ou erro de GPS)';
+            }
+        });
+    </script>
+</body>
+</html>

